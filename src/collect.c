@@ -257,7 +257,7 @@ static uint64_t sanitize_timestamp(
  */
 static struct string_list *time_split_flow(struct printbuf *kafka_line_buffer,
                   struct flowCache *flowCache) {
-  const struct sensor *sensor = flowCache->sensor;
+  const sensor_t *sensor = flowCache->sensor;
   const observation_id_t *observation_id = flowCache->observation_id;
   const time_t now = time(NULL);
 
@@ -484,7 +484,7 @@ static void flow_export_timestamp_uptime(const bool handle_ipfix,
  * @return               String list with record
  */
 static struct string_list *dissectNetFlowV5Record(const NetFlow5Record *the5Record,
-                const int flow_idx, const struct sensor *sensor_object,
+                const int flow_idx, const sensor_t *sensor_object,
                 observation_id_t *observation_id) {
   struct printbuf *kafka_line_buffer = printbuf_new();
   const uint16_t *flowVersion = &the5Record->flowHeader.version;
@@ -550,7 +550,7 @@ static struct string_list *dissectNetFlowV5Record(const NetFlow5Record *the5Reco
 }
 
 static struct string_list *dissectNetFlowV5(worker_t *worker,
-              const struct sensor *sensor_object,
+              const sensor_t *sensor_object,
               observation_id_t *observation_id,
               const NetFlow5Record *the5Record) {
     uint16_t numFlows = ntohs(the5Record->flowHeader.count);
@@ -712,7 +712,7 @@ struct sized_buffer {
 
 struct netflow_sensor {
   uint32_t netflow_device_ip;
-  struct sensor *sensor;
+  sensor_t *sensor;
   uint16_t dst_port;
 };
 
@@ -729,7 +729,7 @@ struct netflow_sensor {
  */
 static size_t dissect_nf9_option_template_params(FlowSetV9Ipfix *new_template,
     const void *buffer, size_t buffer_size, size_t *scope_field_count,
-    size_t *field_count, const struct sensor *sensor,
+    size_t *field_count, const sensor_t *sensor,
     const observation_id_t *observation_id) {
   const V9OptionTemplate *option_template = buffer;
 
@@ -764,7 +764,7 @@ static size_t dissect_nf9_option_template_params(FlowSetV9Ipfix *new_template,
  */
 static size_t dissect_ipfix_option_template_params(FlowSetV9Ipfix *new_template,
     const void *buffer, size_t buffer_size, size_t *scope_field_count,
-    size_t *field_count, const struct sensor *sensor,
+    size_t *field_count, const sensor_t *sensor,
     const observation_id_t *observation_id) {
   const IPFIXOptionsTemplate *option_template = buffer;
 
@@ -794,7 +794,7 @@ static size_t dissect_ipfix_option_template_params(FlowSetV9Ipfix *new_template,
  * @param sbuffer Option template buffer
  * @param dissect_option_template_params Callback to extract template parameters
  */
-static void dissect_option_template(const struct sensor *sensor,
+static void dissect_option_template(const sensor_t *sensor,
                                           uint32_t netflow_device_ip,
                                           observation_id_t *observation_id,
                                           const struct sized_buffer *sbuffer,
@@ -802,7 +802,7 @@ static void dissect_option_template(const struct sensor *sensor,
                                             (*dissect_option_template_params)(
                                               FlowSetV9Ipfix *,const void *,
                                               size_t, size_t *, size_t *,
-                                              const struct sensor *,
+                                              const sensor_t *,
                                               const observation_id_t *)) {
   static const size_t max_num_entries = 4;
   const uint8_t *buffer = sbuffer->buffer;
@@ -1131,7 +1131,7 @@ static struct string_list *dissectNetFlowV9V10FlowSetWithTemplate(
   struct string_list *kafka_string_list = NULL;
   ssize_t displ = 0;
   const uint8_t *buffer  = _buffer->buffer;
-  struct sensor *sensor_object = _sensor->sensor;
+  sensor_t *sensor_object = _sensor->sensor;
 
   int fieldId, init_displ;
   int end_flow;
@@ -1412,7 +1412,7 @@ static size_t dissect_nf9_option_flow(observation_id_t *observation_id,
 
   if ((snmp.name.buffer && snmp.name.size > 0) ||
       (snmp_description.name.buffer && snmp_description.name.size > 0)) {
-    observation_id_add_interface(observation_id, snmp.id,
+    observation_id_add_new_interface(observation_id, snmp.id,
       snmp.name.buffer, snmp.name.size,
       snmp_description.name.buffer, snmp_description.name.size);
   }
@@ -1587,7 +1587,7 @@ static struct string_list *dissectNetFlowV9V10Set(worker_t *worker,
 
 /* NetFlowV9/IPFIX Record */
 static struct string_list *dissectNetflowV9V10(worker_t *worker,
-                    struct sensor *sensor_object,
+                    sensor_t *sensor_object,
                     const uint8_t *_buffer, const ssize_t bufferLen,
                     const uint32_t netflow_device_ip) {
   struct string_list *kafka_string_list = NULL;
@@ -1657,13 +1657,11 @@ static struct string_list *dissectNetflowV9V10(worker_t *worker,
     string_list_concat(&kafka_string_list,_kafka_string_list);
   } /* for */
 
-  observation_id_decref(observation_id);
-
   return kafka_string_list;
 }
 
 static struct string_list *dissectNetFlow(worker_t *worker,
-                      struct sensor *sensor_object,
+                      sensor_t *sensor_object,
                       const uint32_t netflow_device_ip,
                       const void *buffer, const ssize_t bufferLen) {
   const NetFlow5Record *the5Record = (const NetFlow5Record*)buffer;
@@ -1706,7 +1704,6 @@ static struct string_list *dissectNetFlow(worker_t *worker,
       observation_id_n);
     struct string_list *ret = dissectNetFlowV5(worker, sensor_object,
       observation_id, the5Record);
-    observation_id_decref(observation_id);
     return ret;
   } else {
     traceEvent(TRACE_ERROR,"Uknown flow version %d",flowVersion);
@@ -1741,7 +1738,6 @@ static void pop_all_templates(template_queue_t *template_queue) {
     }
 
     save_template(qtemplate->observation_id, qtemplate->template);
-    observation_id_decref(qtemplate->observation_id);
     free(qtemplate->template);
     free(qtemplate);
   }
@@ -1771,7 +1767,6 @@ static void *netFlowConsumerLoop(void *vworker) {
         struct string_list *sl = dissectNetFlow(worker, packet->sensor,
                     packet->netflow_device_ip, packet->buffer,
                     packet->buffer_len);
-        rb_sensor_decref(packet->sensor);
         send_string_list_to_kafka(sl);
       }
 
