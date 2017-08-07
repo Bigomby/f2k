@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include "config.h"
+#include "../config.h"
 
 #include "rb_sensor.h"
 #include "f2k.h"

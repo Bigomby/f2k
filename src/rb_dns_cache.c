@@ -17,10 +17,11 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "rb_dns_cache.h"
+#include "../config.h"
 
 #ifdef HAVE_UDNS
 
+#include "rb_dns_cache.h"
 #include "f2k.h"
 #include "util.h"
 

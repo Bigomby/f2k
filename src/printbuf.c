@@ -18,7 +18,7 @@
   *  + Changed default starting buffer (from 32 to 2048)
   */
 
-#include "config.h"
+#include "../config.h"
 
 #include <stdarg.h>
 #include <stdio.h>

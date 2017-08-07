@@ -23,7 +23,7 @@
 /* *************************** */
 
 #include "rb_listener.h"
-#include "config.h"
+#include "../config.h"
 #include "netflow.h"
 
 #if defined(linux) || defined(__linux__)

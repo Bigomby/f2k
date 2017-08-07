@@ -4,14 +4,24 @@ include Makefile.config
 
 BIN=kafka-netflow
 
-.PHONY+=version.c
+.PHONY+=src/version.c
 
-SRCS_SFLOW_$(WITH_SFLOW) += sflow_collect.c
-SRCS=	collect.c  export.c  globals.c f2k.c \
-	printbuf.c  rb_sensor.c  template.c \
-	util.c  version.c NumNameAssocTree.c \
-	rb_kafka.c rb_listener.c \
-	rb_mac.c rb_dns_cache.c $(SRCS_SFLOW_y)
+SRCS_SFLOW_$(WITH_SFLOW) += src/f2k/sflow_collect.c
+SRCS=	src/collect.c \
+	src/export.c  \
+ 	src/globals.c \
+ 	src/f2k.c \
+ 	src/printbuf.c \
+ 	src/rb_sensor.c \
+	src/template.c \
+	src/rb_dns_cache.c \
+	src/util.c \
+	src/version.c \
+	src/NumNameAssocTree.c \
+	src/rb_kafka.c \
+	src/rb_listener.c \
+	src/rb_mac.c \
+	$(SRCS_SFLOW_y)
 OBJS=	$(SRCS:.c=.o)
 
 TESTS_C = $(wildcard tests/0*.c)
@@ -33,7 +43,7 @@ ifneq ($(wildcard $(SUPPRESSIONS_FILE)),)
 SUPPRESSIONS_VALGRIND_ARG = --suppressions=$(SUPPRESSIONS_FILE)
 endif
 
-.PHONY: version.c tests checks memchecks drdchecks helchecks coverage \
+.PHONY: src/version.c tests checks memchecks drdchecks helchecks coverage \
 	check_coverage manuf
 
 all: $(BIN)
@@ -43,7 +53,7 @@ include mklove/Makefile.base
 manuf:
 	tools/manuf.py
 
-version.c:
+src/version.c:
 	@rm -f $@
 	@echo "const char *f2k_revision=\"`git describe --abbrev=6 --tags HEAD --always`\";" >> $@
 	@echo "const char *version=\"6.13.`date +"%y%m%d"`\";" >> $@
@@ -104,7 +114,7 @@ WRAP_ALLOC_FUNCTIONS := $(foreach fn, $(MALLOC_FUNCTIONS)\
 	,-Wl,-u,$(fn) -Wl,-wrap,$(fn))
 TEST_DEPS := tests/rb_netflow_test.o tests/rb_json_test.o tests/rb_mem_wraps.o
 tests/0023-testPrintbuf.test: TEST_DEPS = tests/rb_mem_wraps.o
-tests/%.test: CPPFLAGS := -I. $(CPPFLAGS)
+tests/%.test: CPPFLAGS := -I ./src $(CPPFLAGS)
 tests/%.test: tests/%.o tests/%.objdeps $(TEST_DEPS) $(OBJS)
 	@echo -e '\033[1;32m[Building]\033[0m\t $@'
 	@$(CC) $(CPPFLAGS) $(LDFLAGS) $< $(WRAP_ALLOC_FUNCTIONS) $(shell cat $(@:.test=.objdeps)) $(TEST_DEPS) -o $@ $(LIBS) -lcmocka > /dev/null

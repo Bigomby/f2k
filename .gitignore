@@ -9,7 +9,7 @@ config.cache
 config.log
 config.log.old
 /config.h
-/version.c
+/src/version.c
 
 # GeoIP
 /GeoIPASNum.dat
