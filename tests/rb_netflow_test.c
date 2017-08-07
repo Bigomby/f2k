@@ -6,8 +6,6 @@
 #include "f2k.h"
 #include "collect.c"
 
-#include "rb_zk.h"
-
 #include "rb_json_test.h"
 
 #include "librd/rdfile.h"
@@ -196,11 +194,6 @@ int nf_test_teardown(void **state) {
   deleteGeoIPDatabases();
 #endif /* HAVE_GEOIP */
 
-  if (readOnlyGlobals.zk.zh != NULL) {
-    stop_f2k_zk();
-    readOnlyGlobals.zk.zh = NULL;
-  }
-
   if (readOnlyGlobals.rb_databases.sensors_info) {
     delete_rb_sensors_db(readOnlyGlobals.rb_databases.sensors_info);
     readOnlyGlobals.rb_databases.sensors_info = NULL;
@@ -332,14 +325,6 @@ static struct string_list *test_flow_i(const struct test_params *params,
              sizeof(readOnlyGlobals.templates_database_path), "%s",
              params->template_save_path);
     loadTemplates(params->template_save_path);
-  }
-
-  if (params->zk_url) {
-    if (readOnlyGlobals.zk.zh) {
-      stop_f2k_zk();
-      readOnlyGlobals.zk.zh = NULL;
-    }
-    init_f2k_zk(params->zk_url);
   }
 
 #ifdef HAVE_UDNS

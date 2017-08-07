@@ -65,10 +65,6 @@
 #include "librdkafka/rdkafka.h"
 #endif
 
-#ifdef HAVE_ZOOKEEPER
-#include <zookeeper/zookeeper.h>
-#endif
-
 #ifdef HAVE_UDNS
 #include <udns.h>
 #endif
@@ -246,25 +242,6 @@ typedef struct {
   } kafka;
 #endif
 
-#ifdef HAVE_ZOOKEEPER
-  struct {
-    pthread_rwlock_t rwlock;
-    zhandle_t *zh;
-    char *zk_host;
-
-    /* @TODO ZK handler will write to this log some times */
-    size_t log_buffer_size;
-    char *log_buffer;
-    FILE *log_buffer_f;
-
-    // Time with the last template get.
-    bool need_to_reconnect;
-    volatile time_t last_template_get_timestamp;
-    double update_template_timeout;
-    pthread_t zk_wathcher;
-  } zk;
-#endif
-
 #ifdef HAVE_UDNS
   struct {
     struct dns_cache *cache;
@@ -283,13 +260,6 @@ typedef struct {
 
 #ifdef HAVE_GEOIP
   pthread_rwlock_t geoipRwLock;
-#endif
-
-#ifdef HAVE_ZOOKEEPER
-  /* Collector */
-  struct {
-    atomic_uint64_t num_zk_templates_received;
-  } collectionStats;
 #endif
 
   bool syslog_opened;

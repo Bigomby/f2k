@@ -1896,6 +1896,12 @@ void test_extract_yt_user()
 #endif
 #endif
 
+void *not_const_cast(const void *p) {
+  void *r;
+  memcpy(&r, &p, sizeof(r));
+  return r;
+}
+
 /* ****************************************************** */
 /* End of ENEO stuffs                                     */
 /* ****************************************************** */

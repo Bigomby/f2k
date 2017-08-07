@@ -19,7 +19,6 @@
 
 #include "config.h"
 #include "rb_kafka.h"
-#include "rb_zk.h"
 #include "rb_sensor.h"
 
 #ifdef HAVE_UDNS
@@ -137,11 +136,6 @@ static const struct option long_options[] = {
   { "rdkafka-opt",                      required_argument,       NULL, 'X' },
   { "rdkafka-netflow-consumer-opt",     required_argument,       NULL, 'Y' },
   { "use-kafka-random-partitioner",     no_argument,             NULL, 'p' },
-#endif
-
-#ifdef HAVE_ZOOKEEPER
-  { "zk-host",                          required_argument,       NULL, 'z' },
-  { "zk-timeout",                       required_argument,       NULL, 262 },
 #endif
 
   { "dont-reforge-timestamps",          no_argument,             NULL, 235 },
@@ -735,13 +729,6 @@ static void printProcessingStats(const struct worker_stats *worker_stats,
 
   }
 
-
-#ifdef HAVE_ZOOKEEPER
-  traceEvent(TRACE_NORMAL, "[Templates received via ZooKeeper: %"PRIu64"]",
-    ATOMIC_OP(add, fetch,
-      &readWriteGlobals->collectionStats.num_zk_templates_received.value, 0));
-#endif
-
   if(readOnlyGlobals.tracePerformance && (tot_pkts > 0)) {
     static unsigned long last_pkts = 0;
     ticks tot;
@@ -935,9 +922,6 @@ static int parseOptions(int argc, char* argv[], const bool reparse_options) {
   FILE *fd;
   int opt, i, option_index;
   char *strtok_aux = NULL, *collector_ports = NULL;
-#ifdef HAVE_ZOOKEEPER
-  char *new_zk_host = NULL;
-#endif
 #ifdef HAVE_LIBRDKAFKA
   readOnlyGlobals.kafka.use_client_mac_partitioner = 1;
   char *kafka_topic = NULL;
@@ -1074,9 +1058,6 @@ static int parseOptions(int argc, char* argv[], const bool reparse_options) {
 #ifdef HAVE_LIBRDKAFKA
                            "X:Y:p\xe6"
 #endif
-#ifdef HAVE_ZOOKEEPER
-                           "Z:"
-#endif
 #ifdef HAVE_UDNS
                            "d:c:t:"
 #endif
@@ -1105,8 +1086,6 @@ static int parseOptions(int argc, char* argv[], const bool reparse_options) {
       case 259: /* country-list */
       case 256: /* hosts-list options */
       case 258: /* rb-config file */
-      case 'z': /* zk-host */
-      case 262: /* zk-timeout */
       case '3': /* collector port */
         discard_option = false;
         break;
@@ -1319,15 +1298,6 @@ static int parseOptions(int argc, char* argv[], const bool reparse_options) {
       break;
 
 #endif /* HAVE_LIBRDKAFKA */
-#ifdef HAVE_ZOOKEEPER
-    case 'z':
-      new_zk_host = strdup(optarg);
-      break;
-
-    case 262:
-      readOnlyGlobals.zk.update_template_timeout = atoi(optarg);
-      break;
-#endif
 
 #ifdef HAVE_UDNS
     case 'd':
@@ -1533,20 +1503,6 @@ udns_config_err:
     pthread_rwlock_unlock(&readOnlyGlobals.rb_databases.mutex);
   }
 
-#ifdef HAVE_ZOOKEEPER
-  pthread_rwlock_wrlock(&readOnlyGlobals.zk.rwlock);
-  if(readOnlyGlobals.zk.zk_host && (NULL == new_zk_host || 0!=strcmp(readOnlyGlobals.zk.zk_host,new_zk_host))) {
-    /* Have to create a new ZK handler */
-    stop_f2k_zk();
-  }
-
-  if(new_zk_host && (NULL == readOnlyGlobals.zk.zk_host)) {
-    /* Exists a old zk handler, and we have changed hosts (or deleted them). Have to free */
-    init_f2k_zk(new_zk_host);
-  }
-  pthread_rwlock_unlock(&readOnlyGlobals.zk.rwlock);
-#endif
-
   if(reparse_options) return(0);
 
   if(unlikely(readOnlyGlobals.enable_debug)) {
@@ -1730,11 +1686,6 @@ static void shutdown_f2k(void) {
 
 #ifdef HAVE_GEOIP
   deleteGeoIPDatabases();
-#endif
-
-#ifdef HAVE_ZOOKEEPER
-  zookeeper_close(readOnlyGlobals.zk.zh);
-  pthread_rwlock_destroy(&readOnlyGlobals.zk.rwlock);
 #endif
 
 #ifdef HAVE_UDNS
@@ -2171,19 +2122,6 @@ static void init_geoip(){
 
 #endif /* HAVE_GEOIP */
 
-#ifdef HAVE_ZOOKEEPER
-
-static void init_zookeeper() {
-  pthread_rwlock_init(&readOnlyGlobals.zk.rwlock,NULL);
-  readOnlyGlobals.zk.log_buffer_f = open_memstream(&readOnlyGlobals.zk.log_buffer,&readOnlyGlobals.zk.log_buffer_size);
-  if(NULL == readOnlyGlobals.zk.log_buffer_f) {
-    traceEvent(TRACE_ERROR,"Can't allocate ZK log buffer (out of memory?)");
-  }
-  readOnlyGlobals.zk.update_template_timeout = 30;
-}
-
-#endif
-
 static void init_globals(void) {
   memset(&readOnlyGlobals, 0, sizeof(readOnlyGlobals));
 
@@ -2207,10 +2145,6 @@ static void init_globals(void) {
   readOnlyGlobals.traceLevel = 2;
   readOnlyGlobals.pcapPtr = NULL;
   readOnlyGlobals.reforgeTimestamps = 1;
-
-#ifdef HAVE_ZOOKEEPER
-  init_zookeeper();
-#endif
 }
 
 /* ****************************************************** */
@@ -2345,10 +2279,6 @@ int main(int argc, char *argv[]) {
   }
 
   dumpLogEvent(probe_started, severity_info, "nProbe started");
-
-#ifdef HAVE_ZOOKEEPER
-  pthread_create(&readOnlyGlobals.zk.zk_wathcher,NULL,zk_watchers_watcher,NULL);
-#endif
 
   check_if_reload(&readOnlyGlobals.rb_databases);
   loadTemplates(readOnlyGlobals.templates_database_path);
