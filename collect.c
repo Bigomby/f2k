@@ -24,7 +24,6 @@
 #include "util.h"
 #include "rb_sensor.h"
 
-#include "rb_zk.h"
 #include "printbuf.h"
 
 #ifdef HAVE_UDNS
@@ -599,141 +598,6 @@ static void saveGoodTemplateInFile(const FlowSetV9Ipfix *new_template) {
   saveTemplateInFile(new_template,filename);
 }
 
-#ifdef HAVE_ZOOKEEPER
-/* @TODO move to rb_zk.h? */
-
-struct aset_template_data {
-  char path[BUFSIZ];
-  char *buffer;
-  size_t bufsize;
-  zhandle_t *zh;
-  int creating;
-  struct ACL_vector acl;
-};
-
-static void set_template_complete(int rc, const struct Stat *zk_stat __attribute__((unused)), const void *_data);
-static void create_template_complete(int rc, const char *value __attribute__((unused)), const void *_data);
-
-static void zoo_template_complete(int rc,void *_data) {
-  struct aset_template_data *data = _data;
-  switch(rc){
-  case ZOK:
-    traceEvent(TRACE_INFO,"ZK node %s with value %s",
-      data->creating ? "created" : "setted", data->buffer);
-    break;
-
-  case ZNONODE:
-    if(0 == data->creating) {
-      traceEvent(TRACE_INFO,"Can't write to ZK node %s because it does not exists: Creating",data->path);
-      data->creating = 1;
-      const int create_rc = zoo_acreate(data->zh,data->path,data->buffer,
-                                        data->bufsize,&data->acl,0,
-                                        create_template_complete,data);
-      if(create_rc == ZOK) {
-        data = 0; /* Do not free data */
-      } else {
-        traceEvent(TRACE_ERROR,"Can't create ZK template node: %s",zerror(create_rc));
-      }
-    } else {
-      traceEvent(TRACE_ERROR,
-        "Can't create ZK node %s because parent node does not exists",
-        data->path);
-    }
-    break;
-
-  case ZNODEEXISTS:
-    /* This error can only be throwed in create(), so node must have been created  */
-    traceEvent(TRACE_ERROR,
-      "Node %s created in a race condition. Will not overwrite.",
-      data->path);
-    break;
-
-  case ZNOAUTH:
-    traceEvent(TRACE_ERROR,"Does not have permission to %s node %s.",
-      data->creating ? "create" : "write in", data->path);
-    break;
-
-  case ZBADVERSION:
-    traceEvent(TRACE_ERROR,"Trying to write a previous version of template %s",data->path);
-    break;
-
-  case ZNOCHILDRENFOREPHEMERALS:
-    traceEvent(TRACE_ERROR,"Can't create child nodes of ephimeral nodes");
-    break;
-
-  default:
-    traceEvent(TRACE_ERROR,"Unknown error returned: %d (%s)",rc,zerror(rc));
-    break;
-  };
-
-  if(data){
-    free(data->buffer);
-    free(data);
-  }
-}
-
-/**
- * Remove const of a void pointer, with no warning. Use with caution, only for
- * zk functions!
- */
-static void *not_const_cast(const void *p) {
-  void *r;
-  memcpy(&r, &p, sizeof(r));
-  return r;
-}
-
-static void set_template_complete(int rc,
-        const struct Stat *zk_stat __attribute__((unused)), const void *data) {
-  zoo_template_complete(rc, not_const_cast(data));
-}
-
-static void create_template_complete(int rc,
-                                    const char *value __attribute__((unused)),
-                                    const void *data) {
-  zoo_template_complete(rc, not_const_cast(data));
-}
-
-static void saveGoodTemplateInZooKeeper(zhandle_t *zh,
-    const FlowSetV9Ipfix *new_template) {
-
-  struct aset_template_data *data = calloc(1,sizeof(*data));
-  if(!data){
-    traceEvent(TRACE_ERROR,"Can't allocate data struct to save template in zookeeper");
-    return;
-  }
-
-  data->zh = zh;
-  memcpy(&data->acl,&ZOO_OPEN_ACL_UNSAFE,sizeof(data->acl));
-  const size_t print_rc = create_template_filename(data->path,
-    sizeof(data->path), ZOOKEEPER_PATH, new_template);
-
-  if(!(print_rc > 0 && print_rc < sizeof(data->path))) {
-    traceEvent(TRACE_ERROR,"Can't print zookeeper path: snprintf returned %zu, it should be 0<rc<%zu",
-      print_rc,sizeof(data->path));
-  }
-
-  data->buffer = serialize_template(new_template,&data->bufsize);
-
-  if(NULL == data->buffer) {
-    traceEvent(TRACE_ERROR,"Can't serialize ZK template");
-    free(data);
-    return;
-  }
-
-  const int set_rc = zoo_aset(zh,data->path,
-      data->buffer /* Value */,
-      data->bufsize /* Valuelen*/,
-      -1, /* version */
-      set_template_complete,
-      data);
-
-    if(set_rc != ZOK)
-      traceEvent(TRACE_ERROR, "Can't set template %s in zookeeper: %s",
-        data->path, zerror(set_rc));
-}
-
-#endif
-
 #ifdef HAVE_UDNS
 
 static void split_after_dns_query_completed(struct dns_ctx *ctx,
@@ -1125,10 +989,6 @@ static size_t dissect_flow_template(worker_t *worker,
     // Save template for future use
     if(strlen(readOnlyGlobals.templates_database_path) > 0)
       saveGoodTemplateInFile(&template);
-#ifdef HAVE_ZOOKEEPER
-    if(readOnlyGlobals.zk.zh)
-      saveGoodTemplateInZooKeeper(readOnlyGlobals.zk.zh, &template);
-#endif
 
     save_template(observation_id, &template);
 

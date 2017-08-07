@@ -41,13 +41,11 @@ struct nf_test_state {
 			const char *host_list_path;
 			const char *geoip_path;
 			const char *template_save_path;
-			const char *zk_url;
 			const char *kafka_test_producer_url;
 			const char *kafka_test_consumer_url;
 			const char *kafka_producer_url;
 			const char *kafka_consumer_url;
 			const char *dns_servers;
-			const char *templates_zk_node;
 			bool normalize_directions;
 
 			uint32_t netflow_src_ip;

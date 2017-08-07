@@ -10,7 +10,7 @@ SRCS_SFLOW_$(WITH_SFLOW) += sflow_collect.c
 SRCS=	collect.c  export.c  globals.c f2k.c \
 	printbuf.c  rb_sensor.c  template.c \
 	util.c  version.c NumNameAssocTree.c \
-	rb_kafka.c rb_listener.c rb_zk.c \
+	rb_kafka.c rb_listener.c \
 	rb_mac.c rb_dns_cache.c $(SRCS_SFLOW_y)
 OBJS=	$(SRCS:.c=.o)
 

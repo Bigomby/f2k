@@ -420,6 +420,7 @@ struct counted_string extract_yt_user(const struct counted_string *url,const str
 struct counted_string extract_yt_user_referer(const struct counted_string *referer);
 struct counted_string extract_dropbox_user(const struct counted_string *host,const struct counted_string *url);
 uint64_t net2number(const void *buffer,const uint16_t real_field_len);
+void *not_const_cast(const void *p);
 
 /* ****************************************************** */
 /* End of ENEO stuffs                                     */
