@@ -17,7 +17,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
+#include "../config.h"
 #include "f2k.h"
 #include "rb_sensor.h"
 #include "rb_mac.h"

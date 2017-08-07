@@ -27,4 +27,3 @@ struct checkdata{
 };
 
 void rb_assert_json(const char *str, const size_t size, const struct checkdata *checkdata);
-
