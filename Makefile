@@ -2,7 +2,7 @@
 include Makefile.config
 
 
-BIN=f2k
+BIN=kafka-netflow
 
 .PHONY+=version.c
 
