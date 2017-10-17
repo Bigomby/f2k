@@ -67,6 +67,7 @@ but without support for Zookeeper.
 
 ```bash
 ./configure
+make dynamic-sensors
 make
 make install
 ```
