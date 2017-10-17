@@ -924,6 +924,7 @@ static bool parse_kafka_broker_topic_arg(const char *const_arg,
   char *config = NULL;
   asprintf(&config, "metadata.broker.list=%s", broker);
   parse_kafka_config(rk_conf, NULL, config);
+  free(config);
 
   *ret_topic = strdup(topic);
   return true;
