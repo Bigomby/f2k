@@ -1,5 +1,5 @@
 # Basics
-/f2k
+/kafka-netflow
 *.o
 *.d
 
