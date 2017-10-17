@@ -23,6 +23,8 @@ SRCS=	src/collect.c \
 	src/rb_mac.c \
 	$(SRCS_SFLOW_y)
 OBJS=	$(SRCS:.c=.o)
+LIBS= src/dynamic-sensors/target/release/libdsensorsdb.a
+LDFLAGS += -ldl
 
 TESTS_C = $(wildcard tests/0*.c)
 
@@ -49,6 +51,9 @@ endif
 all: $(BIN)
 
 include mklove/Makefile.base
+
+dynamic-sensors:
+	cd src/dynamic-sensors/; cargo build --release
 
 manuf:
 	tools/manuf.py
@@ -117,7 +122,7 @@ tests/0023-testPrintbuf.test: TEST_DEPS = tests/rb_mem_wraps.o
 tests/%.test: CPPFLAGS := -I ./src $(CPPFLAGS)
 tests/%.test: tests/%.o tests/%.objdeps $(TEST_DEPS) $(OBJS)
 	@echo -e '\033[1;32m[Building]\033[0m\t $@'
-	@$(CC) $(CPPFLAGS) $(LDFLAGS) $< $(WRAP_ALLOC_FUNCTIONS) $(shell cat $(@:.test=.objdeps)) $(TEST_DEPS) -o $@ $(LIBS) -lcmocka > /dev/null
+	@$(CC) $(CPPFLAGS) $< $(WRAP_ALLOC_FUNCTIONS) $(shell cat $(@:.test=.objdeps)) $(TEST_DEPS) -o $@ $(LIBS) $(LDFLAGS) -lcmocka > /dev/null
 
 get_maxmind_db = wget $(1) -O $@.gz; gunzip $@
 
