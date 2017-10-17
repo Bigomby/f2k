@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/Bigomby/kafka-netflow.svg?branch=master)](https://travis-ci.org/Bigomby/kafka-netflow)
+
 # Kafka Netflow
 
 * [Overview](#overview)
