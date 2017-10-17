@@ -87,7 +87,7 @@ $(LIBNAME).a:	$(OBJS)
 
 $(BIN): $(OBJS)
 	@echo -e "$(MKL_YELLOW)Creating program $@$(MKL_CLR_RESET)"
-	$(CC) $(CPPFLAGS) $(LDFLAGS) $(OBJS) -o $@ $(LIBS)
+	$(CC) $(CPPFLAGS) $(OBJS) -o $@ $(LIBS) $(LDFLAGS)
 
 
 file-check:
