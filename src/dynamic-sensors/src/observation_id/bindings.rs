@@ -174,7 +174,7 @@ pub extern "C" fn observation_id_add_template(observation_id_ptr: *mut Observati
                                               template_ptr: *mut c_void) {
     assert!(!observation_id_ptr.is_null());
     assert!(!template_ptr.is_null());
-    let mut observation_id = unsafe { &mut *observation_id_ptr };
+    let observation_id = unsafe { &mut *observation_id_ptr };
     let template = unsafe { &mut *template_ptr };
 
     observation_id.add_template(id, template);
@@ -185,7 +185,7 @@ pub extern "C" fn observation_id_add_application(observation_id_ptr: *mut Observ
                                                  application_ptr: *mut Application) {
     assert!(!observation_id_ptr.is_null());
     assert!(!application_ptr.is_null());
-    let mut observation_id = unsafe { &mut *observation_id_ptr };
+    let observation_id = unsafe { &mut *observation_id_ptr };
     let application = unsafe { Box::from_raw(application_ptr) };
 
     observation_id.add_application(*application);
@@ -195,7 +195,7 @@ pub extern "C" fn observation_id_add_application(observation_id_ptr: *mut Observ
 pub extern "C" fn observation_id_add_selector(observation_id_ptr: *mut ObservationID,
                                               selector_ptr: *mut Selector) {
     assert!(!observation_id_ptr.is_null());
-    let mut observation_id = unsafe { &mut *observation_id_ptr };
+    let observation_id = unsafe { &mut *observation_id_ptr };
     let selector = unsafe { Box::from_raw(selector_ptr) };
 
     observation_id.add_selector(*selector);
@@ -206,7 +206,7 @@ pub extern "C" fn observation_id_add_interface(observation_id_ptr: *mut Observat
                                                interface_ptr: *mut Interface) {
     assert!(!observation_id_ptr.is_null());
     assert!(!interface_ptr.is_null());
-    let mut observation_id = unsafe { &mut *observation_id_ptr };
+    let observation_id = unsafe { &mut *observation_id_ptr };
     let interface = unsafe { Box::from_raw(interface_ptr) };
 
     observation_id.add_interface(*interface);
@@ -217,7 +217,7 @@ pub extern "C" fn observation_id_add_network(observation_id_ptr: *mut Observatio
                                              network_ptr: *mut Network) {
     assert!(!observation_id_ptr.is_null());
     assert!(!network_ptr.is_null());
-    let mut observation_id = unsafe { &mut *observation_id_ptr };
+    let observation_id = unsafe { &mut *observation_id_ptr };
     let network = unsafe { Box::from_raw(network_ptr) };
 
     observation_id.add_network(*network);
