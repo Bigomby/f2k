@@ -21,9 +21,9 @@
 
 #include "../config.h"
 
-#include "rb_sensor.h"
 #include "f2k.h"
 #include "printbuf.h"
+#include "sensors/sensors.h"
 
 struct flowCache {
   uint64_t client_mac;

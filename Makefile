@@ -12,7 +12,7 @@ SRCS=	src/collect.c \
  	src/globals.c \
  	src/f2k.c \
  	src/printbuf.c \
- 	src/rb_sensor.c \
+ 	src/sensors/sensors.c \
 	src/template.c \
 	src/rb_dns_cache.c \
 	src/util.c \
@@ -23,7 +23,7 @@ SRCS=	src/collect.c \
 	src/rb_mac.c \
 	$(SRCS_SFLOW_y)
 OBJS=	$(SRCS:.c=.o)
-LIBS= src/dynamic-sensors/target/release/libdsensorsdb.a
+LIBS= target/release/librsflow.a
 LDFLAGS += -ldl
 
 TESTS_C = $(wildcard tests/0*.c)
@@ -48,12 +48,12 @@ endif
 .PHONY: src/version.c tests checks memchecks drdchecks helchecks coverage \
 	check_coverage manuf
 
-all: $(BIN)
+all: dynamic-sensors $(BIN)
 
 include mklove/Makefile.base
 
 dynamic-sensors:
-	cd src/dynamic-sensors/; cargo build --release
+	cargo build --release
 
 manuf:
 	tools/manuf.py
@@ -87,6 +87,7 @@ tests: $(TESTS_XML)
 	@$(call run_tests, -cvdh)
 
 checks: $(TESTS_CHECKS_XML)
+	cargo test
 	@$(call run_tests,-c)
 
 memchecks: $(TESTS_MEM_XML)

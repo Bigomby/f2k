@@ -22,7 +22,6 @@
 #include "export.h"
 #include "util.h"
 #include "rb_mac.h"
-#include "rb_sensor.h"
 
 #ifdef HAVE_UDNS
 #include "rb_dns_cache.h"

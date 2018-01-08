@@ -18,7 +18,7 @@
  */
 
 #include "f2k.h"
-#include "rb_sensor.h"
+#include "sensors/sensors.h"
 #include "template.h"
 
 #include <assert.h>

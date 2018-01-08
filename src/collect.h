@@ -22,7 +22,7 @@
 #include <stdint.h>
 #include <time.h>
 
-#include "rb_sensor.h"
+#include "sensors/sensors.h"
 
 typedef struct observation_id_s observation_id_t;
 

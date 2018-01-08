@@ -2,7 +2,7 @@
 
 #include "rb_netflow_test.h"
 #include "rb_mem_wraps.h"
-
+#include "sensors/sensor/sensor.h"
 #include "f2k.h"
 #include "collect.c"
 
@@ -295,13 +295,29 @@ static struct string_list *test_flow_i(const struct test_params *params,
     readOnlyGlobals.rb_databases.reload_engines_database = 1;
   }
 
-  if (params->config_json_path) {
-    if (readOnlyGlobals.rb_databases.sensors_info) {
-      delete_rb_sensors_db(readOnlyGlobals.rb_databases.sensors_info);
-    }
-    readOnlyGlobals.rb_databases.sensors_info =
-        read_rb_config(params->config_json_path, &worker, 1);
-  }
+	if (params->config_json_path) {
+	  if (readOnlyGlobals.rb_databases.sensors_info) {
+	    delete_rb_sensors_db(readOnlyGlobals.rb_databases.sensors_info);
+	  }
+
+		if (readOnlyGlobals.rb_databases.file_loader) {
+			db_loader_file_loader_destroy(readOnlyGlobals.rb_databases.file_loader);
+		}
+
+	  readOnlyGlobals.rb_databases.sensors_info = sensors_db_new();
+		usleep(100000);
+	  readOnlyGlobals.rb_databases.file_loader = db_loader_new_file_loader();
+
+	  db_loader_set_new_sensor_event(readOnlyGlobals.rb_databases.file_loader,
+	                                 add_new_sensor_event,
+	                                 readOnlyGlobals.rb_databases.sensors_info);
+
+	  db_loader_load_file(readOnlyGlobals.rb_databases.file_loader,
+	                      params->config_json_path);
+
+
+	  set_workers(readOnlyGlobals.rb_databases.sensors_info, &worker, 1);
+	}
 
   if (params->mac_vendor_database_path) {
     if (readOnlyGlobals.rb_databases.mac_vendor_database_path) {

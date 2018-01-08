@@ -19,7 +19,7 @@
 
 #include "../config.h"
 #include "rb_kafka.h"
-#include "rb_sensor.h"
+#include "sensors/sensors.h"
 
 #ifdef HAVE_UDNS
 #include "rb_dns_cache.h"
@@ -1490,16 +1490,34 @@ udns_config_err:
   }
 
   if(reload_sensors_info == 1) {
-    if(unlikely(readOnlyGlobals.enable_debug))
+    if(unlikely(readOnlyGlobals.enable_debug)) {
       traceEvent(TRACE_NORMAL,"reloading sensors info");
+    }
+
     pthread_rwlock_wrlock(&readOnlyGlobals.rb_databases.mutex);
-    if(readOnlyGlobals.rb_databases.sensors_info)
+
+    if(readOnlyGlobals.rb_databases.sensors_info) {
       delete_rb_sensors_db(readOnlyGlobals.rb_databases.sensors_info);
-    readOnlyGlobals.rb_databases.sensors_info = read_rb_config(
-           readOnlyGlobals.rb_databases.sensors_info_path,
-           readOnlyGlobals.packetProcessThread,
-           readOnlyGlobals.numProcessThreads);
+    }
+
+    readOnlyGlobals.rb_databases.sensors_info = sensors_db_new();
+    readOnlyGlobals.rb_databases.file_loader = db_loader_new_file_loader();
+
+    db_loader_set_new_sensor_event(
+      readOnlyGlobals.rb_databases.file_loader,
+      add_new_sensor_event,
+      readOnlyGlobals.rb_databases.sensors_info);
+
+    db_loader_load_file(
+      readOnlyGlobals.rb_databases.file_loader,
+      readOnlyGlobals.rb_databases.sensors_info_path);
+
+    set_workers(readOnlyGlobals.rb_databases.sensors_info,
+      readOnlyGlobals.packetProcessThread,
+      readOnlyGlobals.numProcessThreads);
+
     reload_sensors_info = 0;
+
     pthread_rwlock_unlock(&readOnlyGlobals.rb_databases.mutex);
   }
 

@@ -27,3 +27,9 @@ config.log.old
 /coverage.info
 /coverage.out
 /coverage.out.html/
+
+# Rust
+/target/
+**/*.rs.bk
+Cargo.lock
+example

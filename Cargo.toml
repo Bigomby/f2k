@@ -1,0 +1,17 @@
+[package]
+name = "rsflow"
+version = "0.1.0"
+authors = ["Diego Fernández Barrera <bigomby@gmail.com>"]
+
+[lib]
+name = "rsflow"
+crate-type = ["staticlib", "rlib"]
+
+[dependencies]
+libc = "0.2.23"
+serde = "1.0"
+serde_json = "1.0"
+serde_derive = "1.0"
+
+[dev-dependencies]
+test_helpers = { path = "tests/test_helpers" }

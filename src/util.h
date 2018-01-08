@@ -25,6 +25,8 @@
 
 /* ********************************************** */
 
+#include "db_loader/file_loader/file_loader.h"
+
 #ifdef linux
 #include <sys/time.h>
 #endif
