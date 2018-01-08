@@ -6,14 +6,24 @@ use util::apply_netmask;
 use std::collections::HashMap;
 use std::net::IpAddr;
 
-#[derive(Default)]
+type SensorCallback = Option<Box<Fn(&Sensor)>>;
+type SensorMap = HashMap<IpAddr, Sensor>;
+
 pub struct SensorsDB {
-    database: HashMap<IpAddr, Sensor>,
+    database: SensorMap,
+    cb: SensorCallback,
 }
 
 impl SensorsDB {
     pub fn new() -> Self {
-        SensorsDB::default()
+        SensorsDB {
+            database: SensorMap::new(),
+            cb: None,
+        }
+    }
+
+    pub fn set_callback(&mut self, cb: SensorCallback) {
+        self.cb = cb;
     }
 
     pub fn get_sensor(&self, ip: IpAddr) -> Option<&Sensor> {
@@ -47,6 +57,11 @@ impl SensorsDB {
 
     pub fn add_sensor(&mut self, sensor: Sensor) {
         let network = apply_netmask(&sensor.get_network(), &sensor.get_netmask());
+
+        if let Some(ref mut cb) = self.cb {
+            cb(&sensor);
+        }
+
         self.database.insert(network, sensor);
     }
 }
@@ -55,28 +70,54 @@ impl SensorsDB {
 mod tests {
     use super::*;
     use std::net::Ipv4Addr;
+    use std::rc::Rc;
+    use std::cell::Cell;
 
     #[test]
     fn test_add_sensors() {
-        let mut database = SensorsDB::new();
+        let ip_1 = IpAddr::from(Ipv4Addr::from(3232235901)); // Added to DB
+        let ip_2 = IpAddr::from(Ipv4Addr::from(3232236132)); // Added to DB
+        let ip_3 = IpAddr::from(Ipv4Addr::from(3232236133)); // Not added to DB
+        let ip_4 = IpAddr::from(Ipv4Addr::from(3232236389)); // Not added to DB
 
-        let sensor_1 = Sensor::new(IpAddr::from(Ipv4Addr::from(3232235901)),
-                                   IpAddr::from(Ipv4Addr::from(0xFFFFFF00)));
-        let sensor_2 = Sensor::new(IpAddr::from(Ipv4Addr::from(3232236232)),
-                                   IpAddr::from(Ipv4Addr::from(0xFFFFFF00)));
+        let nm = IpAddr::from(Ipv4Addr::from(0xFFFFFF00));
+
+        let sensor_1 = Sensor::new(ip_1, nm);
+        let sensor_2 = Sensor::new(ip_2, nm);
+
+        let mut database = SensorsDB::new();
 
         database.add_sensor(sensor_1);
         database.add_sensor(sensor_2);
 
-        let sensor_in_db_1 = database.get_sensor(IpAddr::from(Ipv4Addr::from(3232235901)));
-        let sensor_in_db_2 = database.get_sensor(IpAddr::from(Ipv4Addr::from(3232236132)));
-        let sensor_in_db_3 = database.get_sensor(IpAddr::from(Ipv4Addr::from(3232236133)));
-        let sensor_in_db_4 = database.get_sensor(IpAddr::from(Ipv4Addr::from(3232236389)));
+        // Sensors with ip_1 and ip_2 should exists on DB
+        assert!(database.get_sensor(ip_1).is_some());
+        assert!(database.get_sensor(ip_2).is_some());
 
-        assert!(sensor_in_db_1.is_some());
-        assert!(sensor_in_db_2.is_some());
-        assert_eq!(sensor_in_db_2.unwrap().get_network(),
-                   sensor_in_db_3.unwrap().get_network());
-        assert!(sensor_in_db_4.is_none());
+        // Sensors with ip_3 is in he same network as ip_2
+        assert!(database.get_sensor(ip_3).is_some());
+
+        // Sensor with ip_4 is not known
+        assert!(database.get_sensor(ip_4).is_none());
+    }
+
+    #[test]
+    fn test_sensor_callback() {
+        let times = 15;
+        let counter = Rc::new(Cell::new(0));
+
+        let counter_ = Rc::clone(&counter);
+        let mut database = SensorsDB::new();
+
+        database.set_callback(Some(Box::new(move |ref _sensor| {
+            counter_.set(counter_.get() + 1);
+        })));
+
+        for _ in 0..times {
+            database.add_sensor(Sensor::new(IpAddr::from(Ipv4Addr::from(3232235901)),
+                                            IpAddr::from(Ipv4Addr::from(0xFFFFFF00))));
+        }
+
+        assert_eq!(counter.get(), times);
     }
 }
